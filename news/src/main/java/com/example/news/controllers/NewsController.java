@@ -1,17 +1,23 @@
 package com.example.news.controllers;
 
 import com.example.news.models.News;
+import com.example.news.models.Comment;
+import com.example.news.services.CommentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 @Controller
 public class NewsController {
+
+    @Autowired
+    private CommentService commentService;
 
     private final List<News> newsList = Arrays.asList(
             new News(
@@ -448,6 +454,38 @@ public class NewsController {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Новость не найдена: " + id));
         model.addAttribute("news", news);
+        model.addAttribute("comments", commentService.getCommentsByNewsId(id));
         return "news-detail";
     }
+
+    @PostMapping("/news/{id}/comment")
+    @ResponseBody
+    public Comment addComment(
+            @PathVariable int id,
+            @RequestBody Map<String, String> payload
+    ) {
+        String userId = payload.get("userId");
+        String userName = payload.get("userName");
+        String text = payload.get("text");
+
+        // Сохраняем комментарий
+        commentService.addComment(id, userId, userName, text);
+
+        // Возвращаем сохранённый комментарий (для динамического добавления на страницу)
+        return commentService.getCommentsByNewsId(id).stream()
+                .filter(comment -> comment.getText().equals(text))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @GetMapping("/api/weather")
+    @ResponseBody
+    public String getWeather(@RequestParam double lat, @RequestParam double lon) {
+        String apiKey = "YOUR_OPENWEATHERMAP_API_KEY"; // Замените на ваш ключ
+        String url = String.format("https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=ru", lat, lon, apiKey);
+
+        RestTemplate restTemplate = new RestTemplate();
+        return restTemplate.getForObject(url, String.class); // Возвращаем сырые данные от API
+    }
+
 }

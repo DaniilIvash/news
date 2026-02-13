@@ -428,6 +428,43 @@
         .update-button:hover {
             background-color: #2980b9;
         }
+
+        .date-filter-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin: 3rem auto 1rem;
+            max-width: 800px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .filter-select {
+            padding: 0.6rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 1rem;
+            min-width: 150px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
     </style>
 </head>
 <body>
@@ -561,6 +598,27 @@
     </div>
 </div>
 
+<div class="date-filter-container" style="margin: 3rem auto 1rem; max-width: 800px; padding: 0 1rem;">
+    <div class="filter-group" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div class="filter-label" style="font-weight: bold; color: #2c3e50;">Фильтр по дате:</div>
+        <select id="dateFilter" onchange="filterNewsByDate()" class="filter-select" style="
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 1rem;
+            min-width: 150px;
+        ">
+            <option value="all">Все даты</option>
+            <option value="today">Сегодня</option>
+            <option value="week">За неделю</option>
+            <option value="month">За месяц</option>
+            <option value="year">За год</option>
+        </select>
+    </div>
+</div>
+
+
 <footer>
     <p>© 2026 Онлайн-новости. Все права защищены.</p>
     <div class="footer-links">
@@ -571,119 +629,10 @@
 </footer>
 
 <script>
+    // === 1. Авторизация и профиль пользователя ===
     let currentUser = null;
-    let currencyChart = null;
-    let weatherChart = null;
 
-    // Проверка наличия пользователя в localStorage при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        const userData = localStorage.getItem('currentUser');
-        if (userData) {
-            currentUser = JSON.parse(userData);
-            updateHeaderForUser();
-        } else {
-            updateHeaderForGuest();
-        }
-
-        // Назначаем обработчики событий для кнопок меню и модальных окон
-        setupEventListeners();
-    });
-
-    function setupEventListeners() {
-        const menuButton = document.getElementById('menuButton');
-        const loginButton = document.getElementById('loginButton');
-        const registerButton = document.getElementById('registerButton');
-        const logoutButton = document.getElementById('logoutButton');
-
-        if (menuButton) {
-            menuButton.addEventListener('click', toggleMenu);
-        }
-
-        if (loginButton) {
-            loginButton.addEventListener('click', () => showAuthModal('login'));
-        }
-
-        if (registerButton) {
-            registerButton.addEventListener('click', () => showAuthModal('register'));
-        }
-
-        if (logoutButton) {
-            logoutButton.addEventListener('click', handleLogout);
-        }
-    }
-
-    function toggleMenu() {
-        const menu = document.getElementById('menu');
-        menu.classList.toggle('show');
-    }
-
-    function openModal(modalId) {
-        const modal = document.getElementById(modalId + 'Modal');
-        const menu = document.getElementById('menu');
-        const authModal = document.getElementById('authModal');
-
-        if (modal) {
-            modal.classList.add('show');
-        }
-
-        if (menu && menu.classList.contains('show')) {
-            menu.classList.remove('show');
-        }
-
-        if (authModal && authModal.classList.contains('show')) {
-            closeAuthModal();
-        }
-
-        if (modalId === 'currency' && modal) {
-            updateCurrencyData();
-        } else if (modalId === 'weather' && modal) {
-            updateWeatherData();
-        }
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId + 'Modal');
-        if (modal) {
-            modal.classList.remove('show');
-        }
-    }
-
-    function closeAuthModal() {
-        const authModal = document.getElementById('authModal');
-        if (authModal) {
-            authModal.classList.remove('show');
-        }
-    }
-
-    function showAuthModal(tab) {
-        const authModal = document.getElementById('authModal');
-        if (authModal) {
-            authModal.classList.add('show');
-            showAuthTab(tab);
-        }
-    }
-
-    function showAuthTab(tab) {
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        const loginTab = document.querySelector('.auth-tab:nth-child(1)');
-        const registerTab = document.querySelector('.auth-tab:nth-child(2)');
-
-        if (tab === 'login') {
-            loginForm.classList.add('active');
-            registerForm.classList.remove('active');
-            loginTab.classList.add('active');
-            registerTab.classList.remove('active');
-            document.getElementById('authModalTitle').textContent = 'Вход';
-        } else {
-            loginForm.classList.remove('active');
-            registerForm.classList.add('active');
-            loginTab.classList.remove('active');
-            registerTab.classList.add('active');
-            document.getElementById('authModalTitle').textContent = 'Регистрация';
-        }
-    }
-
+    // Обновление хедера для гостя
     function updateHeaderForGuest() {
         const headerRight = document.getElementById('headerRight');
         if (headerRight) {
@@ -691,16 +640,17 @@
                 <button class="auth-button" id="loginButton">Вход</button>
                 <button class="auth-button" id="registerButton">Регистрация</button>
                 <button class="menu-button" id="menuButton">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span></span><span></span><span></span>
                 </button>
             `;
-
-            setupEventListeners();
+            // Назначаем обработчики событий
+            document.getElementById('loginButton')?.addEventListener('click', () => showAuthModal('login'));
+            document.getElementById('registerButton')?.addEventListener('click', () => showAuthModal('register'));
+            document.getElementById('menuButton')?.addEventListener('click', toggleMenu);
         }
     }
 
+    // Обновление хедера для пользователя
     function updateHeaderForUser() {
         const headerRight = document.getElementById('headerRight');
         if (headerRight) {
@@ -711,267 +661,37 @@
                 </div>
                 <button class="logout-button" id="logoutButton">Выход</button>
                 <button class="menu-button" id="menuButton">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span></span><span></span><span></span>
                 </button>
             `;
-
-            setupEventListeners();
+            // Назначаем обработчики событий
+            document.getElementById('logoutButton')?.addEventListener('click', handleLogout);
+            document.getElementById('menuButton')?.addEventListener('click', toggleMenu);
         }
     }
 
-    // Инициализация сервиса
-const authService = new AuthService();
-
-// Регистрация
-function handleRegister(event) {
-    event.preventDefault();
-    const name = document.getElementById('registerName').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('registerConfirmPassword').value;
-
-    if (password !== confirmPassword) {
-        alert('Пароли не совпадают!');
-        return;
+    // Показать/скрыть меню
+    function toggleMenu() {
+        const menu = document.getElementById('menu');
+        if (menu) menu.classList.toggle('show');
     }
 
-    try {
-        const newUser = authService.registerUser(name, email, password);
-        currentUser = newUser;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        updateHeaderForUser();
-        closeAuthModal();
-        alert('Вы успешно зарегистрировались!');
-    } catch (error) {
-        alert(error.message);
-    }
-}
-
-// Вход
-function handleLogin(event) {
-    event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    const user = authService.login(email, password);
-    if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        updateHeaderForUser();
-        closeAuthModal();
-        alert('Вы успешно вошли в систему!');
-    } else {
-        alert('Неверный email или пароль!');
-    }
-}
-
-// Обновление интерфейса при авторизации
-function updateHeaderForUser() {
-    const headerRight = document.getElementById('headerRight');
-    headerRight.innerHTML = `
-        <div class="user-profile" id="userProfile">
-            <div class="user-avatar">${currentUser.name.charAt(0).toUpperCase()}</div>
-            <span>${currentUser.name}</span>
-        </div>
-        <button class="logout-button" id="logoutButton">Выход</button>
-        <button class="menu-button" id="menuButton">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
-    `;
-
-    document.getElementById('logoutButton').addEventListener('click', handleLogout);
-}
-
-function handleLogout() {
-    localStorage.removeItem('currentUser');
-    currentUser = null;
-    updateHeaderForGuest();
-    alert('Вы успешно вышли из системы!');
-}
-
-
-    // Курс валют
-    async function updateCurrencyData() {
-        try {
-            const response = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
-            const data = await response.json();
-
-            const rates = {
-                USD: data.Valute.USD.Value.toFixed(2),
-                EUR: data.Valute.EUR.Value.toFixed(2),
-                GBP: data.Valute.GBP.Value.toFixed(2),
-                CNY: data.Valute.CNY.Value.toFixed(2)
-            };
-
-            document.getElementById('usdRate').textContent = rates.USD + ' RUB';
-            document.getElementById('eurRate').textContent = rates.EUR + ' RUB';
-            document.getElementById('gbpRate').textContent = rates.GBP + ' RUB';
-            document.getElementById('cnyRate').textContent = rates.CNY + ' RUB';
-
-            const date = new Date(data.Date.replace(/(\d+).(\d+).(\d+)/, '$3-$2-$1'));
-            if (document.getElementById('currencyDate')) {
-                document.getElementById('currencyDate').textContent = `Данные на ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-            }
-        } catch (error) {
-            console.error('Ошибка при получении курса валют:', error);
-            alert('Не удалось получить актуальные курсы валют. Проверьте соединение с интернетом.');
-        }
-    }
-
-    // Погода
-    async function updateWeatherData() {
-        const cities = [
-            { name: 'Москва', id: 'moscowWeather', lat: 55.7558, lon: 37.6176 },
-            { name: 'Санкт-Петербург', id: 'spbWeather', lat: 59.9343, lon: 30.3351 },
-            { name: 'Новосибирск', id: 'novosibirskWeather', lat: 55.0084, lon: 82.9357 },
-            { name: 'Екатеринбург', id: 'yekaterinburgWeather', lat: 56.8389, lon: 60.6057 }
-        ];
-
-        const apiKey = 'YOUR_OPENWEATHERMAP_API_KEY'; // Замените на ваш ключ API
-
-        const date = new Date();
-        if (document.getElementById('weatherDate')) {
-            document.getElementById('weatherDate').textContent = `Данные на ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-        }
-
-        for (const city of cities) {
-            try {
-                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${apiKey}&units=metric&lang=ru`);
-                const data = await response.json();
-
-                const temp = Math.round(data.main.temp);
-                const feelsLike = Math.round(data.main.feels_like);
-                const description = data.weather[0].description;
-                const emoji = getWeatherEmoji(data.weather[0].main);
-
-                if (document.getElementById(city.id)) {
-                    document.getElementById(city.id).innerHTML = `${temp}°C, ощущается как ${feelsLike}°C, ${description} ${emoji}`;
-                }
-            } catch (error) {
-                console.error(`Ошибка при получении погоды для ${city.name}:`, error);
-                if (document.getElementById(city.id)) {
-                    document.getElementById(city.id).textContent = 'Ошибка загрузки';
-                }
-            }
-        }
-    }
-
-    function getWeatherEmoji(weather) {
-        const emojis = {
-            'Clear': '☀️',
-            'Clouds': '☁️',
-            'Rain': '🌧️',
-            'Drizzle': '🌦️',
-            'Thunderstorm': '⛈️',
-            'Snow': '❄️',
-            'Mist': '🌫️',
-            'Smoke': '🌫️',
-            'Haze': '🌫️',
-            'Fog': '🌫️'
-        };
-        return emojis[weather] || '🌦️';
-    }
-
-    // Закрытие модальных окон при клике вне их
-    window.addEventListener('click', (event) => {
-        const currencyModal = document.getElementById('currencyModal');
-        const weatherModal = document.getElementById('weatherModal');
-        const authModal = document.getElementById('authModal');
-
-        if (currencyModal && event.target === currencyModal) {
-            closeModal('currency');
-        }
-        if (weatherModal && event.target === weatherModal) {
-            closeModal('weather');
-        }
-        if (authModal && event.target === authModal) {
-            closeAuthModal();
-        }
-    });
-</script>
-<script>
-    let currentUser = null;
-
-    // Проверка наличия пользователя в localStorage при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        const userData = localStorage.getItem('currentUser');
-        if (userData) {
-            currentUser = JSON.parse(userData);
-            updateHeaderForUser();
-        } else {
-            updateHeaderForGuest();
-        }
-    });
-
-    function updateHeaderForGuest() {
-        const headerRight = document.getElementById('headerRight');
-        headerRight.innerHTML = `
-            <button class="auth-button" id="loginButton">Вход</button>
-            <button class="auth-button" id="registerButton">Регистрация</button>
-            <button class="menu-button" id="menuButton">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        `;
-
-        document.getElementById('loginButton').addEventListener('click', () => {
-            showAuthModal('login');
-        });
-
-        document.getElementById('registerButton').addEventListener('click', () => {
-            showAuthModal('register');
-        });
-
-        document.getElementById('menuButton').addEventListener('click', () => {
-            menu.classList.toggle('show');
-        });
-    }
-
-    function updateHeaderForUser() {
-        const headerRight = document.getElementById('headerRight');
-        headerRight.innerHTML = `
-            <div class="user-profile" id="userProfile">
-                <div class="user-avatar">${currentUser.name.charAt(0).toUpperCase()}</div>
-                <span>${currentUser.name}</span>
-            </div>
-            <button class="logout-button" id="logoutButton">Выход</button>
-            <button class="menu-button" id="menuButton">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        `;
-
-        document.getElementById('logoutButton').addEventListener('click', handleLogout);
-        document.getElementById('menuButton').addEventListener('click', () => {
-            menu.classList.toggle('show');
-        });
-    }
-
-    function handleLogout() {
-        localStorage.removeItem('currentUser');
-        currentUser = null;
-        updateHeaderForGuest();
-        alert('Вы успешно вышли из системы!');
-    }
-
-    const menu = document.getElementById('menu');
-    const authModal = document.getElementById('authModal');
-
+    // Показать модальное окно авторизации
     function showAuthModal(tab) {
-        authModal.classList.add('show');
-        showAuthTab(tab);
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            authModal.classList.add('show');
+            showAuthTab(tab);
+        }
     }
 
+    // Закрыть модальное окно авторизации
     function closeAuthModal() {
-        authModal.classList.remove('show');
+        const authModal = document.getElementById('authModal');
+        if (authModal) authModal.classList.remove('show');
     }
 
+    // Показать вкладку "Вход" или "Регистрация"
     function showAuthTab(tab) {
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
@@ -979,37 +699,31 @@ function handleLogout() {
         const registerTab = document.querySelector('.auth-tab:nth-child(2)');
 
         if (tab === 'login') {
-            loginForm.classList.add('active');
-            registerForm.classList.remove('active');
-            loginTab.classList.add('active');
-            registerTab.classList.remove('active');
+            loginForm?.classList.add('active');
+            registerForm?.classList.remove('active');
+            loginTab?.classList.add('active');
+            registerTab?.classList.remove('active');
             document.getElementById('authModalTitle').textContent = 'Вход';
         } else {
-            loginForm.classList.remove('active');
-            registerForm.classList.add('active');
-            loginTab.classList.remove('active');
-            registerTab.classList.add('active');
+            loginForm?.classList.remove('active');
+            registerForm?.classList.add('active');
+            loginTab?.classList.remove('active');
+            registerTab?.classList.add('active');
             document.getElementById('authModalTitle').textContent = 'Регистрация';
         }
     }
 
+    // Обработка входа
     function handleLogin(event) {
         event.preventDefault();
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
-
-        // Получаем пользователей из localStorage
         const users = JSON.parse(localStorage.getItem('users')) || [];
-
-        // Ищем пользователя с таким email и паролем
         const user = users.find(u => u.email === email && u.password === password);
 
         if (user) {
-            // Сохраняем текущего пользователя
             currentUser = user;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-            // Обновляем интерфейс
             updateHeaderForUser();
             closeAuthModal();
             alert('Вы успешно вошли в систему!');
@@ -1018,6 +732,7 @@ function handleLogout() {
         }
     }
 
+    // Обработка регистрации
     function handleRegister(event) {
         event.preventDefault();
         const name = document.getElementById('registerName').value;
@@ -1030,43 +745,33 @@ function handleLogout() {
             return;
         }
 
-        // Получаем пользователей из localStorage
         const users = JSON.parse(localStorage.getItem('users')) || [];
-
-        // Проверяем, существует ли пользователь с таким email
         const userExists = users.some(u => u.email === email);
         if (userExists) {
             alert('Пользователь с таким email уже существует!');
             return;
         }
 
-        // Создаем нового пользователя
         const newUser = { name, email, password };
-
-        // Добавляем нового пользователя в массив и сохраняем в localStorage
         users.push(newUser);
         localStorage.setItem('users', JSON.stringify(users));
 
-        // Сохраняем текущего пользователя
         currentUser = newUser;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-        // Обновляем интерфейс
         updateHeaderForUser();
         closeAuthModal();
         alert('Вы успешно зарегистрировались!');
     }
 
-    window.addEventListener('click', (event) => {
-        const authModal = document.getElementById('authModal');
+    // Обработка выхода
+    function handleLogout() {
+        localStorage.removeItem('currentUser');
+        currentUser = null;
+        updateHeaderForGuest();
+        alert('Вы успешно вышли из системы!');
+    }
 
-        if (event.target === authModal) {
-            closeAuthModal();
-        }
-    });
-</script>
-<script>
-    // Проверка наличия пользователя в localStorage при загрузке страницы
+    // Инициализация при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
         const userData = localStorage.getItem('currentUser');
         if (userData) {
@@ -1075,78 +780,189 @@ function handleLogout() {
         } else {
             updateHeaderForGuest();
         }
-
-        setupEventListeners();
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', (event) => {
+            const authModal = document.getElementById('authModal');
+            if (event.target === authModal) closeAuthModal();
+        });
     });
+</script>
+<script>
+    // === 2. Новости и их фильтрация ===
+    // Функция для фильтрации новостей по дате
+function filterNewsByDate() {
+    const dateFilter = document.getElementById('dateFilter').value;
+    const newsCards = document.querySelectorAll('.news-card');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Сбрасываем время для сравнения только дат
 
-    function setupEventListeners() {
-        const menuButton = document.getElementById('menuButton');
-        if (menuButton) {
-            menuButton.addEventListener('click', toggleMenu);
+    newsCards.forEach(card => {
+        const dateElement = card.querySelector('.news-meta span:last-child');
+        if (dateElement) {
+            const newsDateStr = dateElement.textContent.trim();
+            // Преобразуем строку даты в объект Date (например, "15 января 2026" → Date)
+            const newsDate = parseRussianDate(newsDateStr);
+            if (!newsDate) {
+                card.style.display = 'none';
+                return;
+            }
+
+            let shouldShow = true;
+            switch (dateFilter) {
+                case 'today':
+                    shouldShow = isSameDay(newsDate, today);
+                    break;
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    shouldShow = newsDate >= weekAgo && newsDate <= today;
+                    break;
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(today.getMonth() - 1);
+                    shouldShow = newsDate >= monthAgo && newsDate <= today;
+                    break;
+                case 'year':
+                    const yearAgo = new Date(today);
+                    yearAgo.setFullYear(today.getFullYear() - 1);
+                    shouldShow = newsDate >= yearAgo && newsDate <= today;
+                    break;
+                default:
+                    shouldShow = true;
+            }
+            card.style.display = shouldShow ? 'block' : 'none';
         }
-    }
+    });
+}
 
-    function toggleMenu() {
-        const menu = document.getElementById('menu');
-        if (menu) {
-            menu.classList.toggle('show');
-        }
-    }
+// Вспомогательная функция для парсинга даты на русском (например, "15 января 2026")
+function parseRussianDate(dateStr) {
+    const months = {
+        'января': 0, 'февраля': 1, 'марта': 2, 'апреля': 3, 'мая': 4, 'июня': 5,
+        'июля': 6, 'августа': 7, 'сентября': 8, 'октября': 9, 'ноября': 10, 'декабря': 11
+    };
 
+    const parts = dateStr.split(' ');
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = months[parts[1].toLowerCase()];
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || month === undefined || isNaN(year)) return null;
+
+    return new Date(year, month, day);
+}
+
+// Вспомогательная функция для сравнения дат (без учёта времени)
+function isSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+}
+    // Фильтрация новостей по категории
     function filterNews(category) {
         const newsCards = document.querySelectorAll('.news-card');
-
         newsCards.forEach(card => {
             const cardCategoryElement = card.querySelector('.news-meta span:first-child');
             if (cardCategoryElement) {
                 const cardCategory = cardCategoryElement.textContent.trim();
-                if (category === '' || cardCategory === category) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
+                card.style.display = (category === '' || cardCategory === category) ? 'block' : 'none';
             }
         });
-
         // Закрываем меню после выбора фильтра
         const menu = document.getElementById('menu');
-        if (menu && menu.classList.contains('show')) {
-            menu.classList.remove('show');
+        if (menu && menu.classList.contains('show')) menu.classList.remove('show');
+    }
+</script>
+<script>
+    // === 3. Погода и валюты ===
+    // Обновление курса валют
+    async function updateCurrencyData() {
+        try {
+            const response = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
+            const data = await response.json();
+            const rates = {
+                USD: data.Valute.USD.Value.toFixed(2),
+                EUR: data.Valute.EUR.Value.toFixed(2),
+                GBP: data.Valute.GBP.Value.toFixed(2),
+                CNY: data.Valute.CNY.Value.toFixed(2)
+            };
+            document.getElementById('usdRate').textContent = `${rates.USD} RUB`;
+            document.getElementById('eurRate').textContent = `${rates.EUR} RUB`;
+            document.getElementById('gbpRate').textContent = `${rates.GBP} RUB`;
+            document.getElementById('cnyRate').textContent = `${rates.CNY} RUB`;
+            const date = new Date(data.Date.replace(/(\d+).(\d+).(\d+)/, '$3-$2-$1'));
+            document.getElementById('currencyDate').textContent = `Данные на ${date.toLocaleDateString('ru-RU')}`;
+        } catch (error) {
+            console.error('Ошибка при получении курса валют:', error);
+            alert('Не удалось получить актуальные курсы валют.');
         }
     }
 
+    // Обновление погоды через прокси-сервер
+async function updateWeatherData() {
+    const cities = [
+        { name: 'Москва', id: 'moscowWeather', lat: 55.7558, lon: 37.6176 },
+        { name: 'Санкт-Петербург', id: 'spbWeather', lat: 59.9343, lon: 30.3351 },
+        { name: 'Новосибирск', id: 'novosibirskWeather', lat: 55.0084, lon: 82.9357 },
+        { name: 'Екатеринбург', id: 'yekaterinburgWeather', lat: 56.8389, lon: 60.6057 }
+    ];
+
+    const date = new Date();
+    document.getElementById('weatherDate').textContent = `Данные на ${date.toLocaleDateString('ru-RU')} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+
+    for (const city of cities) {
+        try {
+            // Запрос через прокси-сервер
+            const response = await fetch(`/api/weather?lat=${city.lat}&lon=${city.lon}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            // Обработка ответа
+            const temp = Math.round(data.main.temp);
+            const feelsLike = Math.round(data.main.feels_like);
+            const description = data.weather[0].description;
+            const emoji = getWeatherEmoji(data.weather[0].main);
+
+            document.getElementById(city.id).innerHTML = `${temp}°C, ощущается как ${feelsLike}°C, ${description} ${emoji}`;
+        } catch (error) {
+            console.error(`Ошибка при получении погоды для ${city.name}:`, error);
+            document.getElementById(city.id).textContent = 'Ошибка загрузки';
+        }
+    }
+}
+
+    // Получение эмодзи для погоды
+    function getWeatherEmoji(weather) {
+        const emojis = {
+            'Clear': '☀️', 'Clouds': '☁️', 'Rain': '🌧️', 'Drizzle': '🌦️',
+            'Thunderstorm': '⛈️', 'Snow': '❄️', 'Mist': '🌫️',
+            'Smoke': '🌫️', 'Haze': '🌫️', 'Fog': '🌫️'
+        };
+        return emojis[weather] || '🌦️';
+    }
+
+    // Открытие/закрытие модальных окон
     function openModal(modalId) {
-        const modal = document.getElementById(modalId + 'Modal');
+        const modal = document.getElementById(`${modalId}Modal`);
         const menu = document.getElementById('menu');
         const authModal = document.getElementById('authModal');
 
-        if (modal) {
-            modal.classList.add('show');
-        }
+        if (modal) modal.classList.add('show');
+        if (menu && menu.classList.contains('show')) menu.classList.remove('show');
+        if (authModal && authModal.classList.contains('show')) closeAuthModal();
 
-        if (menu && menu.classList.contains('show')) {
-            menu.classList.remove('show');
-        }
-
-        if (authModal && authModal.classList.contains('show')) {
-            closeAuthModal();
-        }
-
-        if (modalId === 'currency' && modal) {
-            updateCurrencyData();
-        } else if (modalId === 'weather' && modal) {
-            updateWeatherData();
-        }
+        if (modalId === 'currency') updateCurrencyData();
+        else if (modalId === 'weather') updateWeatherData();
     }
 
     function closeModal(modalId) {
-        const modal = document.getElementById(modalId + 'Modal');
-        if (modal) {
-            modal.classList.remove('show');
-        }
+        const modal = document.getElementById(`${modalId}Modal`);
+        if (modal) modal.classList.remove('show');
     }
-
-    // Остальные функции (updateCurrencyData, updateWeatherData и т.д.) остаются без изменений
 </script>
 
 </body>
